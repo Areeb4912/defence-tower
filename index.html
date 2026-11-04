@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101812">
+    <title>Frontline: Last Stand</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script type="importmap">
+      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }
+    </script>
+    <script type="module" src="./game.js"></script>
+  </head>
+  <body>
+    <div id="game-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Frontline home">
+          <span class="brand-mark">F</span>
+          <span>
+            FRONTLINE
+            <span class="brand-sub">LAST STAND</span>
+          </span>
+        </a>
+        <div class="resource-strip">
+          <div class="resource">
+            <span class="resource-icon credits-icon">$</span>
+            <span>
+              <small>CREDITS</small>
+              <strong id="credits">1,000</strong>
+            </span>
+          </div>
+          <div class="resource">
+            <span class="resource-icon energy-icon">ϟ</span>
+            <span>
+              <small>ENERGY</small>
+              <strong>
+                <span id="energy">100</span>
+                <i id="energy-rate">+20/s</i>
+              </strong>
+            </span>
+          </div>
+          <div class="resource">
+            <span class="resource-icon research-icon">◆</span>
+            <span>
+              <small>RESEARCH</small>
+              <strong id="research">0</strong>
+            </span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <div class="wave-counter">
+            <small>WAVE</small>
+            <strong id="wave">
+              0 
+              <span>/ 10</span>
+            </strong>
+          </div>
+          <div class="base-health">
+            <div class="health-label">
+              <span>HQ INTEGRITY</span>
+              <b id="hp-label">2,000 / 2,000</b>
+            </div>
+            <div class="health-track">
+              <span id="hp-bar"></span>
+            </div>
+          </div>
+          <button class="icon-button" id="pause-button" title="Pause (P)" aria-label="Pause">Ⅱ</button>
+        </div>
+      </header>
+      <main class="battle-layout">
+        <aside class="left-rail">
+          <section class="panel mission-panel">
+            <div class="panel-title">
+              <span>MISSION CONTROL</span>
+              <span class="live-dot"></span>
+            </div>
+            <h1 id="mission-name">Desert Outpost</h1>
+            <p id="mission-objective">Protect the command center. Do not let hostile units reach the base.</p>
+            <div class="mission-meta">
+              <span id="mode-label">CAMPAIGN</span>
+              <span id="difficulty-label">NORMAL</span>
+            </div>
+          </section>
+          <section class="panel wave-panel">
+            <div class="panel-title">
+              <span>THREAT STATUS</span>
+              <span class="threat-mark">▲</span>
+            </div>
+            <div id="wave-status" class="wave-status">AWAITING DEPLOYMENT</div>
+            <div class="wave-progress">
+              <span id="wave-progress"></span>
+            </div>
+            <div class="wave-detail">
+              <span>HOSTILES</span>
+              <b id="enemy-count">0</b>
+            </div>
+            <div class="wave-detail">
+              <span>ELIMINATED</span>
+              <b id="kills">0</b>
+            </div>
+            <button class="button button-primary full-button" id="wave-button">DEPLOY FIRST WAVE</button>
+          </section>
+          <section class="panel objective-panel">
+            <div class="panel-title">
+              <span>FIELD INTEL</span>
+              <span class="intel-tag">LIVE</span>
+            </div>
+            <div id="intel-content" class="intel-content">No hostile contacts detected.</div>
+          </section>
+          <section class="panel ability-panel">
+            <div class="panel-title">
+              <span>COMMAND ABILITIES</span>
+              <span class="small-muted">[1–4]</span>
+            </div>
+            <button class="ability-button" data-ability="air">
+              <span class="ability-key">1</span>
+              <span>
+                <b>Air Support</b>
+                <small>500 area damage • click to aim</small>
+              </span>
+              <i id="cooldown-air">READY</i>
+            </button>
+            <button class="ability-button" data-ability="emp">
+              <span class="ability-key">2</span>
+              <span>
+                <b>EMP Pulse</b>
+                <small>5s area disable • click to aim</small>
+              </span>
+              <i id="cooldown-emp">READY</i>
+            </button>
+            <button class="ability-button" data-ability="repair">
+              <span class="ability-key">3</span>
+              <span>
+                <b>Emergency Repair</b>
+                <small>Restore 300 HQ HP</small>
+              </span>
+              <i id="cooldown-repair">READY</i>
+            </button>
+            <button class="ability-button" data-ability="shield">
+              <span class="ability-key">4</span>
+              <span>
+                <b>Defense Shield</b>
+                <small>Block HQ damage for 8s</small>
+              </span>
+              <i id="cooldown-shield">READY</i>
+            </button>
+          </section>
+        </aside>
+        <section class="battlefield-wrap">
+          <div id="battlefield"></div>
+          <div class="map-label">
+            <span class="map-coordinate">GRID 04 / 17</span>
+            <b id="map-weather">CLEAR • 18:00</b>
+          </div>
+          <section id="tactical-map-panel" class="tactical-map-panel" aria-label="Live tactical map">
+            <div class="tactical-map-heading">
+              <div>
+                <span class="eyebrow">LIVE SENSOR FEED</span>
+                <strong>TACTICAL MAP</strong>
+              </div>
+              <button id="tactical-map-toggle" class="map-toggle" type="button" aria-label="Collapse tactical map" aria-expanded="true">−</button>
+            </div>
+            <canvas id="tactical-map" width="240" height="180" aria-label="Map showing the route, defense towers, and detected hostiles"></canvas>
+            <div class="tactical-map-legend">
+              <span>
+                <i class="legend-hq"></i>
+                HQ
+              </span>
+              <span>
+                <i class="legend-defense"></i>
+                DEFENSE
+              </span>
+              <span>
+                <i class="legend-hostile"></i>
+                HOSTILE
+              </span>
+            </div>
+          </section>
+          <div id="toast" class="toast" aria-live="polite"></div>
+          <div class="battle-controls">
+            <span>
+              <kbd>WASD</kbd>
+               MOVE
+            </span>
+            <span>
+              <kbd>Q E</kbd>
+               ROTATE
+            </span>
+            <span>
+              <kbd>SCROLL</kbd>
+               ZOOM
+            </span>
+            <span>
+              <kbd>CLICK</kbd>
+               SELECT / BUILD
+            </span>
+            <span>
+              <kbd>DRAG</kbd>
+               STRIKE ENEMIES
+            </span>
+          </div>
+          <div id="start-screen" class="overlay">
+            <div class="start-card">
+              <div class="eyebrow">TACTICAL DEFENSE SIMULATION</div>
+              <h2>
+                HOLD THE
+                <br>
+                <em>LINE.</em>
+              </h2>
+              <p>Build your defenses. Manage power. Protect the headquarters.</p>
+              <div class="setup-grid">
+                <label>
+                  OPERATION
+                  <select id="mode-select">
+                    <option value="campaign">Campaign</option>
+                    <option value="endless">Endless</option>
+                    <option value="boss">Boss Challenge</option>
+                  </select>
+                </label>
+                <label>
+                  THEATER
+                  <select id="map-select"></select>
+                </label>
+                <label>
+                  THREAT LEVEL
+                  <select id="difficulty-select">
+                    <option value="normal">Normal</option>
+                    <option value="easy">Easy</option>
+                    <option value="hard">Hard</option>
+                    <option value="veryhard">Very Hard</option>
+                    <option value="insane">Insane</option>
+                  </select>
+                </label>
+                <label>
+                  VISUAL QUALITY
+                  <select id="quality-select">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                    <option value="ultra">Ultra</option>
+                  </select>
+                </label>
+              </div>
+              <button id="start-button" class="button button-primary start-button">
+                DEPLOY TO BATTLEFIELD 
+                <span>→</span>
+              </button>
+              <div class="start-foot">
+                <span>PROGRESS SAVES AUTOMATICALLY</span>
+                <button id="tech-open-start" class="text-button">RESEARCH TREE</button>
+              </div>
+            </div>
+            <div class="start-visual">
+              <div class="radar-ring ring-one"></div>
+              <div class="radar-ring ring-two"></div>
+              <div class="radar-sweep"></div>
+              <span class="radar-cross">+</span>
+              <span class="radar-label">
+                SECTOR 7G
+                <br>
+                HQ SIGNAL: STABLE
+              </span>
+            </div>
+          </div>
+          <div id="pause-screen" class="overlay hidden">
+            <div class="modal-card">
+              <div class="eyebrow">OPERATIONS SUSPENDED</div>
+              <h2>PAUSED</h2>
+              <p>Battle simulation is paused.</p>
+              <button id="resume-button" class="button button-primary full-button">RESUME OPERATION</button>
+              <button id="menu-button" class="button button-secondary full-button">RETURN TO MAIN MENU</button>
+            </div>
+          </div>
+          <div id="end-screen" class="overlay hidden">
+            <div class="modal-card">
+              <div class="eyebrow" id="end-eyebrow">OPERATION REPORT</div>
+              <h2 id="end-title">MISSION COMPLETE</h2>
+              <p id="end-summary"></p>
+              <button id="again-button" class="button button-primary full-button">DEPLOY AGAIN</button>
+              <button id="end-menu-button" class="button button-secondary full-button">MAIN MENU</button>
+            </div>
+          </div>
+        </section>
+        <aside class="right-rail">
+          <section class="panel build-panel">
+            <div class="panel-title">
+              <span>DEFENSE GRID</span>
+              <span class="small-muted">
+                <b id="tower-count">0</b>
+                 / 30
+              </span>
+            </div>
+            <div id="tower-list" class="tower-list"></div>
+            <div class="build-tip">
+              <span>＋</span>
+               Select a structure, then click a clear position on the battlefield.
+            </div>
+          </section>
+          <section class="panel selected-panel">
+            <div class="panel-title">
+              <span>UNIT DETAILS</span>
+              <span id="selected-badge" class="selected-badge">NONE</span>
+            </div>
+            <div id="selection-empty" class="selection-empty">
+              <span class="empty-crosshair">◎</span>
+              <b>No structure selected</b>
+              <small>Select a tower on the battlefield to inspect and upgrade it.</small>
+            </div>
+            <div id="selection-details" class="hidden">
+              <h2 id="selected-name">Machine Gun</h2>
+              <div class="level-line">
+                <span id="selected-level">LEVEL 1 / 5</span>
+                <span id="selected-range">RANGE 18m</span>
+              </div>
+              <div class="stat-grid" id="selected-stats"></div>
+              <label class="target-select">
+                TARGET PRIORITY
+                <select id="target-select">
+                  <option value="first">First (nearest exit)</option>
+                  <option value="last">Last (furthest from exit)</option>
+                  <option value="strongest">Strongest (highest HP)</option>
+                  <option value="weakest">Weakest (lowest HP)</option>
+                  <option value="closest">Closest (to tower)</option>
+                </select>
+              </label>
+              <label class="target-select power-select">
+                POWER PRIORITY
+                <select id="power-priority">
+                  <option value="high">High — power first</option>
+                  <option value="normal">Normal</option>
+                  <option value="low">Low — conserve energy</option>
+                </select>
+              </label>
+              <div class="upgrade-branch">
+                <button id="branch-damage" class="branch-button active">DAMAGE</button>
+                <button id="branch-range" class="branch-button">RANGE</button>
+                <button id="branch-speed" class="branch-button">FIRE RATE</button>
+              </div>
+              <button id="upgrade-button" class="button button-primary full-button">
+                UPGRADE
+                <span id="upgrade-cost">100 CR</span>
+              </button>
+              <button id="sell-button" class="button button-secondary full-button">
+                SELL STRUCTURE
+                <span id="sell-value">75 CR</span>
+              </button>
+            </div>
+          </section>
+          <section class="panel utilities-panel">
+            <div class="panel-title">
+              <span>HEADQUARTERS</span>
+              <span class="small-muted">SUPPORT</span>
+            </div>
+            <div class="utility-row">
+              <span>
+                <b>Repair HQ</b>
+                <small>+250 HP • 150 credits</small>
+              </span>
+              <button id="repair-button" class="mini-button">REPAIR</button>
+            </div>
+            <div class="utility-row">
+              <span>
+                <b>Power Generator</b>
+                <small>+10 energy/s • +25 capacity</small>
+              </span>
+              <button id="generator-button" class="mini-button">300 CR</button>
+            </div>
+            <div class="utility-row">
+              <span>
+                <b>Active generators</b>
+                <small id="generator-count">0 / 3</small>
+              </span>
+              <span class="utility-symbol">ϟ</span>
+            </div>
+            <button id="tech-open" class="button button-secondary full-button tech-button">◆ TECHNOLOGY RESEARCH</button>
+          </section>
+          <section class="panel log-panel">
+            <div class="panel-title">
+              <span>COMMS LOG</span>
+              <button id="clear-log" class="text-button">CLEAR</button>
+            </div>
+            <div id="comms-log" class="comms-log"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+    <div id="tech-modal" class="modal hidden">
+      <div class="tech-card">
+        <button id="tech-close" class="modal-close" aria-label="Close">×</button>
+        <div class="eyebrow">R&amp;D DIVISION</div>
+        <h2>TECHNOLOGY TREE</h2>
+        <p>Spend research points earned from completed waves. Upgrades persist between operations.</p>
+        <div id="tech-grid" class="tech-grid"></div>
+        <div class="tech-footer">
+          <span>AVAILABLE RESEARCH</span>
+          <b id="tech-points">0 RP</b>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
